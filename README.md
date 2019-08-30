@@ -1,40 +1,43 @@
-Google Earth Engine API
-=======================
+# Earth Engine WMTS Proxy
 
-Python and JavaScript client libraries for calling the Google Earth Engine API.
+This is an App Engine-based application that implements the Web Map Tile
+Standard (WMTS) for Earth Engine. The server takes in WMTS requests in its
+`/GetTile` endpoint and returns Earth Engine tiles.
 
-_**Important Note: Access to Google Earth Engine is currently only available to
-registered users. The API is in active development, and users should expect the
-API to change.  When (not if) API changes occur, applications that use the API
-will likely need to be updated.**_
+For example, if the server were running on `some-wmts-server.appspot.com`, one
+would request Earth Engine datasets as follows:
 
--   [Earth Engine Homepage](https://earthengine.google.com/)
--   [Web Code Editor](https://code.earthengine.google.com/)
--   [Python
-    Installation](https://developers.google.com/earth-engine/python_install)
+*   The name of the Earth Engine asset (e.g. `TIGER/2016/States`) is put in the
+    `layer` parameter.
+*   The spatial coordinates of the tile (`x`, `y`, `zoom`) are delineated by the
+    `TileCol`, `TileRow`, and `TileMatrix` parameters.
 
-Here's an example screenshot and the corresponding Code Editor JavaScript code:
+Thus one would request for a tile at position (`1`, `1`, `3`) from the
+`TIGER/2016/STATES` asset from
+`/GetTile?layer=TIGER/2016/States&tileMatrix=3&tileRow=3&tileCol=1`.
 
-![Trendy Lights Image](https://raw.github.com/google/earthengine-api/master/trendy-lights.png)
+Layers are taken from a central Google Cloud Storage bucket
+`gs://earthengine-catalog`, maintained by Earth Engine. If the dataset is an
+`ImageCollection`, the proxy will show only the first image.
 
-    // Compute the trend of night-time lights.
+## Setup
 
-    // Adds a band containing image date as years since 1991.
-    function createTimeBand(img) {
-      var year = ee.Date(img.get('system:time_start')).get('year').subtract(1991);
-      return ee.Image(year).byte().addBands(img);
-    }
+To run this app, first create an App Engine application as per the Developer
+Docs instructions for [deploying an EE-based App Engine app][1].
+Note that the service account created in the "Set up credentials" step needs to
+be registered with Earth Engine; one can only do this currently by emailing
+`earthengine@google.com` for it to be added to the whitelist; in the future (Q1
+2020), this validation process will be more streamlined.
 
-    // Map the time band creation helper over the night-time lights collection.
-    // https://developers.google.com/earth-engine/datasets/catalog/NOAA_DMSP-OLS_NIGHTTIME_LIGHTS
-    var collection = ee.ImageCollection('NOAA/DMSP-OLS/NIGHTTIME_LIGHTS')
-        .select('stable_lights')
-        .map(createTimeBand);
+## Deploying
 
-    // Compute a linear fit over the series of values at each pixel, visualizing
-    // the y-intercept in green, and positive/negative slopes as red/blue.
-    Map.addLayer(
-        collection.reduce(ee.Reducer.linearFit()),
-        {min: 0, max: [0.18, 20, -0.18], bands: ['scale', 'offset', 'scale']},
-        'stable lights trend');
-# gitee
+This is to be run on Google App Engine and thus depends on the `gcloud` binary
+to be installed. Install dependencies and deploy as follows:
+
+```
+$ chmod +x deploy.sh
+$ ./deploy.sh <your app engine project id>
+```
+
+[1]: https://developers.google.com/earth-engine/app_engine_intro#deploying-app-engine-apps-with-earth-engine
+[2]: https://cloud.google.com/appengine/docs/standard/python/config/appref
